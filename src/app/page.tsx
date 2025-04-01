@@ -35,6 +35,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize database and load data on component mount
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function Home() {
         }
       } catch (error) {
         console.error("Error initializing or loading data:", error);
+        setError("Failed to load data. Please try refreshing the page.");
       } finally {
         setIsLoading(false);
       }
@@ -68,6 +70,7 @@ export default function Home() {
           });
         } catch (error) {
           console.error("Error saving data:", error);
+          setError("Failed to save data. Please try again.");
         }
       }
     }
@@ -89,6 +92,14 @@ export default function Home() {
     return (
       <main className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
         <div className="text-xl text-gray-900">Loading...</div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
+        <div className="text-xl text-red-600">{error}</div>
       </main>
     );
   }
