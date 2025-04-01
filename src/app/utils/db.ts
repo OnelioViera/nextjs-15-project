@@ -30,10 +30,36 @@ export interface ExpenseData {
   incomes: Income[];
 }
 
+// Test database connection
+async function testConnection() {
+  try {
+    await sql`SELECT 1`;
+    console.log("Database connection successful");
+    return true;
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    if (error instanceof Error) {
+      console.error("Connection error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
+    return false;
+  }
+}
+
 // Initialize database tables
 export async function initDB() {
   try {
     console.log("Initializing database tables...");
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error("Could not connect to database");
+    }
+
     // Create tables if they don't exist
     await sql`
       CREATE TABLE IF NOT EXISTS bills (
@@ -66,6 +92,13 @@ export async function initDB() {
     console.log("Database tables initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     throw new Error("Failed to initialize database tables");
   }
 }
@@ -77,6 +110,12 @@ export async function saveData(data: ExpenseData) {
       expensesCount: data.expenses.length,
       incomesCount: data.incomes.length,
     });
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error("Could not connect to database");
+    }
 
     // Clear existing data
     await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
@@ -107,6 +146,13 @@ export async function saveData(data: ExpenseData) {
     return true;
   } catch (error) {
     console.error("Error saving data:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     throw new Error("Failed to save data to database");
   }
 }
@@ -114,6 +160,13 @@ export async function saveData(data: ExpenseData) {
 export async function loadData(): Promise<ExpenseData | null> {
   try {
     console.log("Loading data from database...");
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error("Could not connect to database");
+    }
+
     const [billsResult, expensesResult, incomesResult] = await Promise.all([
       sql`SELECT * FROM bills ORDER BY created_at DESC`,
       sql`SELECT * FROM expenses ORDER BY created_at DESC`,
@@ -153,6 +206,13 @@ export async function loadData(): Promise<ExpenseData | null> {
     return data;
   } catch (error) {
     console.error("Error loading data:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     throw new Error("Failed to load data from database");
   }
 }
@@ -160,11 +220,25 @@ export async function loadData(): Promise<ExpenseData | null> {
 export async function deleteData() {
   try {
     console.log("Deleting all data from database...");
+
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error("Could not connect to database");
+    }
+
     await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
     console.log("Data deleted successfully");
     return true;
   } catch (error) {
     console.error("Error deleting data:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     throw new Error("Failed to delete data from database");
   }
 }
