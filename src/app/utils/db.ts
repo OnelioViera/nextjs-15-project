@@ -33,6 +33,7 @@ export interface ExpenseData {
 // Initialize database tables
 export async function initDB() {
   try {
+    console.log("Initializing database tables...");
     // Create tables if they don't exist
     await sql`
       CREATE TABLE IF NOT EXISTS bills (
@@ -71,6 +72,12 @@ export async function initDB() {
 
 export async function saveData(data: ExpenseData) {
   try {
+    console.log("Saving data to database:", {
+      billsCount: data.bills.length,
+      expensesCount: data.expenses.length,
+      incomesCount: data.incomes.length,
+    });
+
     // Clear existing data
     await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
 
@@ -106,13 +113,14 @@ export async function saveData(data: ExpenseData) {
 
 export async function loadData(): Promise<ExpenseData | null> {
   try {
+    console.log("Loading data from database...");
     const [billsResult, expensesResult, incomesResult] = await Promise.all([
       sql`SELECT * FROM bills ORDER BY created_at DESC`,
       sql`SELECT * FROM expenses ORDER BY created_at DESC`,
       sql`SELECT * FROM incomes ORDER BY created_at DESC`,
     ]);
 
-    return {
+    const data = {
       bills: billsResult.rows.map((row) => ({
         id: row.id,
         name: row.name,
@@ -135,6 +143,14 @@ export async function loadData(): Promise<ExpenseData | null> {
         date: row.date,
       })),
     };
+
+    console.log("Data loaded successfully:", {
+      billsCount: data.bills.length,
+      expensesCount: data.expenses.length,
+      incomesCount: data.incomes.length,
+    });
+
+    return data;
   } catch (error) {
     console.error("Error loading data:", error);
     throw new Error("Failed to load data from database");
@@ -143,6 +159,7 @@ export async function loadData(): Promise<ExpenseData | null> {
 
 export async function deleteData() {
   try {
+    console.log("Deleting all data from database...");
     await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
     console.log("Data deleted successfully");
     return true;

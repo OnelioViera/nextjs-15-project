@@ -36,17 +36,26 @@ export default function Home() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize database and load data on component mount
   useEffect(() => {
     async function initializeAndLoadData() {
       try {
-        await initDB();
+        console.log("Starting initialization and data load...");
+        if (!isInitialized) {
+          await initDB();
+          setIsInitialized(true);
+        }
+
         const savedData = await loadData();
+        console.log("Loaded data:", savedData);
+
         if (savedData) {
           setBills(savedData.bills);
           setExpenses(savedData.expenses);
           setIncomes(savedData.incomes);
+          console.log("State updated with loaded data");
         }
       } catch (error) {
         console.error("Error initializing or loading data:", error);
@@ -56,18 +65,26 @@ export default function Home() {
       }
     }
     initializeAndLoadData();
-  }, []);
+  }, [isInitialized]);
 
   // Save data to database whenever it changes
   useEffect(() => {
     async function saveToDatabase() {
-      if (!isLoading) {
+      if (!isLoading && isInitialized) {
         try {
+          console.log("Saving current state to database:", {
+            bills: bills.length,
+            expenses: expenses.length,
+            incomes: incomes.length,
+          });
+
           await saveData({
             bills,
             expenses,
             incomes,
           });
+
+          console.log("Data saved successfully");
         } catch (error) {
           console.error("Error saving data:", error);
           setError("Failed to save data. Please try again.");
@@ -75,7 +92,7 @@ export default function Home() {
       }
     }
     saveToDatabase();
-  }, [bills, expenses, incomes, isLoading]);
+  }, [bills, expenses, incomes, isLoading, isInitialized]);
 
   // Calculate summary metrics
   const unpaidBills = bills
