@@ -1,4 +1,4 @@
-import { sql } from "@vercel/postgres";
+import { neon } from "@neondatabase/serverless";
 
 interface Bill {
   id: string;
@@ -30,19 +30,31 @@ export interface ExpenseData {
   incomes: Income[];
 }
 
+interface PostgresError extends Error {
+  code?: string;
+  hint?: string;
+}
+
+// Initialize database connection
+const sql = neon(process.env.DATABASE_URL!);
+
 // Test database connection
 async function testConnection() {
   try {
+    console.log("Testing database connection...");
     await sql`SELECT 1`;
     console.log("Database connection successful");
     return true;
   } catch (error) {
     console.error("Database connection failed:", error);
     if (error instanceof Error) {
+      const pgError = error as PostgresError;
       console.error("Connection error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name,
+        code: pgError.code,
+        hint: pgError.hint,
       });
     }
     return false;
@@ -52,7 +64,7 @@ async function testConnection() {
 // Initialize database tables
 export async function initDB() {
   try {
-    console.log("Initializing database tables...");
+    console.log("Starting database initialization...");
 
     // Test connection first
     const isConnected = await testConnection();
@@ -61,42 +73,69 @@ export async function initDB() {
     }
 
     // Create tables if they don't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS bills (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        due_date DATE NOT NULL,
-        is_paid BOOLEAN DEFAULT false,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
+    console.log("Creating tables...");
+    try {
+      await sql`
+        CREATE TABLE IF NOT EXISTS bills (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          due_date DATE NOT NULL,
+          is_paid BOOLEAN DEFAULT false,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      console.log("Bills table created/verified");
 
-      CREATE TABLE IF NOT EXISTS expenses (
-        id TEXT PRIMARY KEY,
-        description TEXT NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        category TEXT NOT NULL,
-        date DATE NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
+      await sql`
+        CREATE TABLE IF NOT EXISTS expenses (
+          id TEXT PRIMARY KEY,
+          description TEXT NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          category TEXT NOT NULL,
+          date DATE NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      console.log("Expenses table created/verified");
 
-      CREATE TABLE IF NOT EXISTS incomes (
-        id TEXT PRIMARY KEY,
-        source TEXT NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        frequency TEXT NOT NULL,
-        date DATE NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-      );
-    `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS incomes (
+          id TEXT PRIMARY KEY,
+          source TEXT NOT NULL,
+          amount DECIMAL(10,2) NOT NULL,
+          frequency TEXT NOT NULL,
+          date DATE NOT NULL,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+      console.log("Incomes table created/verified");
+    } catch (tableError) {
+      console.error("Error creating tables:", tableError);
+      if (tableError instanceof Error) {
+        const pgError = tableError as PostgresError;
+        console.error("Table creation error details:", {
+          message: tableError.message,
+          stack: tableError.stack,
+          name: tableError.name,
+          code: pgError.code,
+          hint: pgError.hint,
+        });
+      }
+      throw tableError;
+    }
+
     console.log("Database tables initialized successfully");
   } catch (error) {
     console.error("Error initializing database:", error);
     if (error instanceof Error) {
+      const pgError = error as PostgresError;
       console.error("Error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name,
+        code: pgError.code,
+        hint: pgError.hint,
       });
     }
     throw new Error("Failed to initialize database tables");
@@ -147,10 +186,13 @@ export async function saveData(data: ExpenseData) {
   } catch (error) {
     console.error("Error saving data:", error);
     if (error instanceof Error) {
+      const pgError = error as PostgresError;
       console.error("Error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name,
+        code: pgError.code,
+        hint: pgError.hint,
       });
     }
     throw new Error("Failed to save data to database");
@@ -174,21 +216,21 @@ export async function loadData(): Promise<ExpenseData | null> {
     ]);
 
     const data = {
-      bills: billsResult.rows.map((row) => ({
+      bills: billsResult.map((row) => ({
         id: row.id,
         name: row.name,
         amount: parseFloat(row.amount),
         dueDate: row.due_date,
         isPaid: row.is_paid,
       })),
-      expenses: expensesResult.rows.map((row) => ({
+      expenses: expensesResult.map((row) => ({
         id: row.id,
         description: row.description,
         amount: parseFloat(row.amount),
         category: row.category,
         date: row.date,
       })),
-      incomes: incomesResult.rows.map((row) => ({
+      incomes: incomesResult.map((row) => ({
         id: row.id,
         source: row.source,
         amount: parseFloat(row.amount),
@@ -207,10 +249,13 @@ export async function loadData(): Promise<ExpenseData | null> {
   } catch (error) {
     console.error("Error loading data:", error);
     if (error instanceof Error) {
+      const pgError = error as PostgresError;
       console.error("Error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name,
+        code: pgError.code,
+        hint: pgError.hint,
       });
     }
     throw new Error("Failed to load data from database");
@@ -233,10 +278,13 @@ export async function deleteData() {
   } catch (error) {
     console.error("Error deleting data:", error);
     if (error instanceof Error) {
+      const pgError = error as PostgresError;
       console.error("Error details:", {
         message: error.message,
         stack: error.stack,
         name: error.name,
+        code: pgError.code,
+        hint: pgError.hint,
       });
     }
     throw new Error("Failed to delete data from database");
