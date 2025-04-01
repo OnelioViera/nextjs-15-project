@@ -2,10 +2,34 @@ import { put, list, del } from "@vercel/blob";
 
 const BLOB_STORE_ID = "expense-tracker-data";
 
+interface Bill {
+  id: string;
+  name: string;
+  amount: number;
+  dueDate: string;
+  isPaid: boolean;
+}
+
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+}
+
+interface Income {
+  id: string;
+  source: string;
+  amount: number;
+  frequency: string;
+  date: string;
+}
+
 export interface ExpenseData {
-  bills: any[];
-  expenses: any[];
-  incomes: any[];
+  bills: Bill[];
+  expenses: Expense[];
+  incomes: Income[];
 }
 
 export async function saveData(data: ExpenseData) {
