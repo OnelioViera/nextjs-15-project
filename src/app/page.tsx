@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BillsSection from "./components/BillsSection";
 import ExpensesSection from "./components/ExpensesSection";
 import IncomeSection from "./components/IncomeSection";
+import { loadData, saveData } from "./utils/blobStorage";
 
 interface Bill {
   id: string;
@@ -33,6 +34,44 @@ export default function Home() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load data from blob storage on component mount
+  useEffect(() => {
+    async function loadSavedData() {
+      try {
+        const savedData = await loadData();
+        if (savedData) {
+          setBills(savedData.bills);
+          setExpenses(savedData.expenses);
+          setIncomes(savedData.incomes);
+        }
+      } catch (error) {
+        console.error("Error loading saved data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSavedData();
+  }, []);
+
+  // Save data to blob storage whenever it changes
+  useEffect(() => {
+    async function saveToStorage() {
+      if (!isLoading) {
+        try {
+          await saveData({
+            bills,
+            expenses,
+            incomes,
+          });
+        } catch (error) {
+          console.error("Error saving data:", error);
+        }
+      }
+    }
+    saveToStorage();
+  }, [bills, expenses, incomes, isLoading]);
 
   // Calculate summary metrics
   const unpaidBills = bills
@@ -44,6 +83,14 @@ export default function Home() {
   );
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
   const balance = totalIncome - totalExpenses - unpaidBills;
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
+        <div className="text-xl text-gray-900">Loading...</div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen p-8 bg-gray-100">
