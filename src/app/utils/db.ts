@@ -71,33 +71,30 @@ export async function initDB() {
 
 export async function saveData(data: ExpenseData) {
   try {
-    // Use a transaction to ensure data consistency
-    await sql.begin(async (sql) => {
-      // Clear existing data
-      await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
+    // Clear existing data
+    await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
 
-      // Insert new data
-      for (const bill of data.bills) {
-        await sql`
-          INSERT INTO bills (id, name, amount, due_date, is_paid)
-          VALUES (${bill.id}, ${bill.name}, ${bill.amount}, ${bill.dueDate}, ${bill.isPaid})
-        `;
-      }
+    // Insert new data
+    for (const bill of data.bills) {
+      await sql`
+        INSERT INTO bills (id, name, amount, due_date, is_paid)
+        VALUES (${bill.id}, ${bill.name}, ${bill.amount}, ${bill.dueDate}, ${bill.isPaid})
+      `;
+    }
 
-      for (const expense of data.expenses) {
-        await sql`
-          INSERT INTO expenses (id, description, amount, category, date)
-          VALUES (${expense.id}, ${expense.description}, ${expense.amount}, ${expense.category}, ${expense.date})
-        `;
-      }
+    for (const expense of data.expenses) {
+      await sql`
+        INSERT INTO expenses (id, description, amount, category, date)
+        VALUES (${expense.id}, ${expense.description}, ${expense.amount}, ${expense.category}, ${expense.date})
+      `;
+    }
 
-      for (const income of data.incomes) {
-        await sql`
-          INSERT INTO incomes (id, source, amount, frequency, date)
-          VALUES (${income.id}, ${income.source}, ${income.amount}, ${income.frequency}, ${income.date})
-        `;
-      }
-    });
+    for (const income of data.incomes) {
+      await sql`
+        INSERT INTO incomes (id, source, amount, frequency, date)
+        VALUES (${income.id}, ${income.source}, ${income.amount}, ${income.frequency}, ${income.date})
+      `;
+    }
 
     console.log("Data saved successfully");
     return true;
@@ -146,9 +143,7 @@ export async function loadData(): Promise<ExpenseData | null> {
 
 export async function deleteData() {
   try {
-    await sql.begin(async (sql) => {
-      await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
-    });
+    await sql`DELETE FROM bills; DELETE FROM expenses; DELETE FROM incomes;`;
     console.log("Data deleted successfully");
     return true;
   } catch (error) {
