@@ -1,4 +1,16 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, neonConfig } from "@neondatabase/serverless";
+
+// Configure neon for server-side
+if (typeof window === "undefined") {
+  import("ws").then((ws) => {
+    neonConfig.webSocketConstructor = ws.default;
+  });
+} else {
+  neonConfig.webSocketConstructor = WebSocket;
+}
+
+neonConfig.useSecureWebSocket = true;
+neonConfig.fetchConnectionCache = true;
 
 interface Bill {
   id: string;
@@ -35,15 +47,17 @@ interface PostgresError extends Error {
   hint?: string;
 }
 
-// Initialize database connection
-const sql = neon(process.env.DATABASE_URL!);
+// Initialize database connection with connection pooling
+const sql = neon(process.env.POSTGRES_URL!);
 
 // Test database connection
 async function testConnection() {
   try {
     console.log("Testing database connection...");
-    await sql`SELECT 1`;
-    console.log("Database connection successful");
+    console.log("Database URL available:", !!process.env.POSTGRES_URL);
+
+    const result = await sql`SELECT 1`;
+    console.log("Database connection successful", result);
     return true;
   } catch (error) {
     console.error("Database connection failed:", error);
