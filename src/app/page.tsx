@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import BillsSection from "./components/BillsSection";
 import ExpensesSection from "./components/ExpensesSection";
 import IncomeSection from "./components/IncomeSection";
-import { loadData, saveData } from "./utils/blobStorage";
+import { loadData, saveData, initDB } from "./utils/db";
 
 interface Bill {
   id: string;
@@ -36,10 +36,11 @@ export default function Home() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load data from blob storage on component mount
+  // Initialize database and load data on component mount
   useEffect(() => {
-    async function loadSavedData() {
+    async function initializeAndLoadData() {
       try {
+        await initDB();
         const savedData = await loadData();
         if (savedData) {
           setBills(savedData.bills);
@@ -47,17 +48,17 @@ export default function Home() {
           setIncomes(savedData.incomes);
         }
       } catch (error) {
-        console.error("Error loading saved data:", error);
+        console.error("Error initializing or loading data:", error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadSavedData();
+    initializeAndLoadData();
   }, []);
 
-  // Save data to blob storage whenever it changes
+  // Save data to database whenever it changes
   useEffect(() => {
-    async function saveToStorage() {
+    async function saveToDatabase() {
       if (!isLoading) {
         try {
           await saveData({
@@ -70,7 +71,7 @@ export default function Home() {
         }
       }
     }
-    saveToStorage();
+    saveToDatabase();
   }, [bills, expenses, incomes, isLoading]);
 
   // Calculate summary metrics
