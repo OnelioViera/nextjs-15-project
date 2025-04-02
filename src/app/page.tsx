@@ -1,165 +1,100 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { loadData, saveData, initDB, ExpenseData } from "./utils/db";
 import BillsSection from "./components/BillsSection";
 import ExpensesSection from "./components/ExpensesSection";
 import IncomeSection from "./components/IncomeSection";
-import { loadData, saveData, initDB } from "./utils/db";
-
-interface Bill {
-  id: string;
-  name: string;
-  amount: number;
-  dueDate: string;
-  isPaid: boolean;
-}
-
-interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-}
-
-interface Income {
-  id: string;
-  source: string;
-  amount: number;
-  frequency: string;
-  date: string;
-}
 
 export default function Home() {
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [data, setData] = useState<ExpenseData>({
+    bills: [],
+    expenses: [],
+    incomes: [],
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize database and load data on component mount
   useEffect(() => {
-    async function initializeAndLoadData() {
+    const initializeData = async () => {
       try {
-        console.log("Starting initialization and data load...");
-        if (!isInitialized) {
-          await initDB();
-          setIsInitialized(true);
-        }
+        console.log("Starting data initialization...");
+        await initDB();
+        console.log("Database initialized successfully");
 
-        const savedData = await loadData();
-        console.log("Loaded data:", savedData);
-
-        if (savedData) {
-          setBills(savedData.bills);
-          setExpenses(savedData.expenses);
-          setIncomes(savedData.incomes);
-          console.log("State updated with loaded data");
+        const loadedData = await loadData();
+        if (loadedData) {
+          setData(loadedData);
+          console.log("Data loaded successfully");
         }
       } catch (error) {
-        console.error("Error initializing or loading data:", error);
-        setError("Failed to load data. Please try refreshing the page.");
+        console.error("Error initializing data:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to initialize data"
+        );
       } finally {
         setIsLoading(false);
       }
+    };
+
+    initializeData();
+  }, []);
+
+  const handleDataChange = async (newData: ExpenseData) => {
+    try {
+      await saveData(newData);
+      setData(newData);
+    } catch (error) {
+      console.error("Error saving data:", error);
+      setError(error instanceof Error ? error.message : "Failed to save data");
     }
-    initializeAndLoadData();
-  }, [isInitialized]);
-
-  // Save data to database whenever it changes
-  useEffect(() => {
-    async function saveToDatabase() {
-      if (!isLoading && isInitialized) {
-        try {
-          console.log("Saving current state to database:", {
-            bills: bills.length,
-            expenses: expenses.length,
-            incomes: incomes.length,
-          });
-
-          await saveData({
-            bills,
-            expenses,
-            incomes,
-          });
-
-          console.log("Data saved successfully");
-        } catch (error) {
-          console.error("Error saving data:", error);
-          setError("Failed to save data. Please try again.");
-        }
-      }
-    }
-    saveToDatabase();
-  }, [bills, expenses, incomes, isLoading, isInitialized]);
-
-  // Calculate summary metrics
-  const unpaidBills = bills
-    .filter((bill) => !bill.isPaid)
-    .reduce((sum, bill) => sum + bill.amount, 0);
-  const totalExpenses = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
-  const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
-  const balance = totalIncome - totalExpenses - unpaidBills;
+  };
 
   if (isLoading) {
-    return (
-      <main className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
-        <div className="text-xl text-gray-900">Loading...</div>
-      </main>
-    );
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return (
-      <main className="min-h-screen p-8 bg-gray-100 flex items-center justify-center">
-        <div className="text-xl text-red-600">{error}</div>
-      </main>
-    );
+    return <div>Error: {error}</div>;
   }
 
-  return (
-    <main className="min-h-screen p-8 bg-gray-100">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center text-gray-900">
-          Expense Tracker
-        </h1>
+  // Calculate summary metrics
+  const unpaidBills = data.bills
+    .filter((bill) => !bill.isPaid)
+    .reduce((sum, bill) => sum + bill.amount, 0);
+  const totalExpenses = data.expenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
+  const totalIncome = data.incomes.reduce(
+    (sum, income) => sum + income.amount,
+    0
+  );
+  const balance = totalIncome - totalExpenses - unpaidBills;
 
-        {/* Summary Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Total Income
-            </h3>
-            <p className="text-2xl font-bold text-green-600">
-              ${totalIncome.toFixed(2)}
-            </p>
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
+        <h1 className="text-4xl font-bold mb-8">Expense Tracker</h1>
+
+        {/* Summary Section */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold">Unpaid Bills</h3>
+            <p className="text-2xl text-red-600">${unpaidBills.toFixed(2)}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Total Expenses
-            </h3>
-            <p className="text-2xl font-bold text-red-600">
-              ${totalExpenses.toFixed(2)}
-            </p>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold">Total Expenses</h3>
+            <p className="text-2xl text-red-600">${totalExpenses.toFixed(2)}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Unpaid Bills
-            </h3>
-            <p className="text-2xl font-bold text-orange-600">
-              ${unpaidBills.toFixed(2)}
-            </p>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold">Total Income</h3>
+            <p className="text-2xl text-green-600">${totalIncome.toFixed(2)}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Current Balance
-            </h3>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-semibold">Balance</h3>
             <p
-              className={`text-2xl font-bold ${
+              className={`text-2xl ${
                 balance >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >
@@ -168,14 +103,25 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Detailed Sections */}
+        {/* Data Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-8">
-            <BillsSection bills={bills} setBills={setBills} />
-            <ExpensesSection expenses={expenses} setExpenses={setExpenses} />
+            <BillsSection
+              bills={data.bills}
+              setBills={(bills) => handleDataChange({ ...data, bills })}
+            />
+            <ExpensesSection
+              expenses={data.expenses}
+              setExpenses={(expenses) =>
+                handleDataChange({ ...data, expenses })
+              }
+            />
           </div>
           <div>
-            <IncomeSection incomes={incomes} setIncomes={setIncomes} />
+            <IncomeSection
+              incomes={data.incomes}
+              setIncomes={(incomes) => handleDataChange({ ...data, incomes })}
+            />
           </div>
         </div>
       </div>

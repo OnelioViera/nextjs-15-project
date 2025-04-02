@@ -12,7 +12,7 @@ if (typeof window === "undefined") {
 neonConfig.useSecureWebSocket = true;
 neonConfig.fetchConnectionCache = true;
 
-interface Bill {
+export interface Bill {
   id: string;
   name: string;
   amount: number;
@@ -20,7 +20,7 @@ interface Bill {
   isPaid: boolean;
 }
 
-interface Expense {
+export interface Expense {
   id: string;
   description: string;
   amount: number;
@@ -28,7 +28,7 @@ interface Expense {
   date: string;
 }
 
-interface Income {
+export interface Income {
   id: string;
   source: string;
   amount: number;
@@ -54,8 +54,13 @@ const sql = neon(process.env.POSTGRES_URL!);
 async function testConnection() {
   try {
     console.log("Testing database connection...");
+    console.log(
+      "Environment:",
+      typeof window === "undefined" ? "server" : "client"
+    );
     console.log("Database URL available:", !!process.env.POSTGRES_URL);
 
+    // Test basic query
     const result = await sql`SELECT 1`;
     console.log("Database connection successful", result);
     return true;
@@ -79,6 +84,10 @@ async function testConnection() {
 export async function initDB() {
   try {
     console.log("Starting database initialization...");
+    console.log(
+      "Environment:",
+      typeof window === "undefined" ? "server" : "client"
+    );
 
     // Test connection first
     const isConnected = await testConnection();

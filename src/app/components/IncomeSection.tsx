@@ -1,122 +1,122 @@
 "use client";
 
 import { useState } from "react";
-
-interface Income {
-  id: string;
-  source: string;
-  amount: number;
-  frequency: string;
-  date: string;
-}
+import { Income } from "../utils/db";
 
 interface IncomeSectionProps {
   incomes: Income[];
-  setIncomes: React.Dispatch<React.SetStateAction<Income[]>>;
+  setIncomes: (incomes: Income[]) => void;
 }
 
 export default function IncomeSection({
   incomes,
   setIncomes,
 }: IncomeSectionProps) {
-  const [newIncome, setNewIncome] = useState({
+  const [newIncome, setNewIncome] = useState<Partial<Income>>({
     source: "",
-    amount: "",
-    frequency: "monthly",
-    date: new Date().toISOString().split("T")[0],
+    amount: 0,
+    frequency: "",
+    date: "",
   });
-
-  const frequencies = ["weekly", "bi-weekly", "monthly", "yearly", "one-time"];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (
+      !newIncome.source ||
+      !newIncome.amount ||
+      !newIncome.frequency ||
+      !newIncome.date
+    )
+      return;
+
     const income: Income = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       source: newIncome.source,
-      amount: parseFloat(newIncome.amount),
+      amount: Number(newIncome.amount),
       frequency: newIncome.frequency,
       date: newIncome.date,
     };
+
     setIncomes([...incomes, income]);
     setNewIncome({
       source: "",
-      amount: "",
-      frequency: "monthly",
-      date: new Date().toISOString().split("T")[0],
+      amount: 0,
+      frequency: "",
+      date: "",
     });
   };
 
-  return (
-    <div className="p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4 text-gray-900">Income</h2>
+  const deleteIncome = (id: string) => {
+    setIncomes(incomes.filter((income) => income.id !== id));
+  };
 
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h2 className="text-2xl font-bold mb-4">Income</h2>
+      <form onSubmit={handleSubmit} className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
-            placeholder="Income Source"
+            placeholder="Source"
             value={newIncome.source}
             onChange={(e) =>
               setNewIncome({ ...newIncome, source: e.target.value })
             }
-            className="p-2 border rounded text-gray-900"
-            required
+            className="p-2 border rounded"
           />
           <input
             type="number"
             placeholder="Amount"
             value={newIncome.amount}
             onChange={(e) =>
-              setNewIncome({ ...newIncome, amount: e.target.value })
+              setNewIncome({ ...newIncome, amount: Number(e.target.value) })
             }
-            className="p-2 border rounded text-gray-900"
-            required
+            className="p-2 border rounded"
           />
-          <select
+          <input
+            type="text"
+            placeholder="Frequency"
             value={newIncome.frequency}
             onChange={(e) =>
               setNewIncome({ ...newIncome, frequency: e.target.value })
             }
-            className="p-2 border rounded text-gray-900"
-            required
-          >
-            {frequencies.map((freq) => (
-              <option key={freq} value={freq}>
-                {freq.charAt(0).toUpperCase() + freq.slice(1)}
-              </option>
-            ))}
-          </select>
+            className="p-2 border rounded"
+          />
           <input
             type="date"
             value={newIncome.date}
             onChange={(e) =>
               setNewIncome({ ...newIncome, date: e.target.value })
             }
-            className="p-2 border rounded text-gray-900"
-            required
+            className="p-2 border rounded"
           />
         </div>
         <button
           type="submit"
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Add Income
         </button>
       </form>
 
-      <div className="space-y-2">
+      <div className="space-y-4">
         {incomes.map((income) => (
           <div
             key={income.id}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded"
+            className="flex items-center justify-between p-4 bg-gray-50 rounded"
           >
             <div>
-              <h3 className="font-semibold text-gray-900">{income.source}</h3>
-              <p className="text-sm text-gray-700">
-                ${income.amount.toFixed(2)} - {income.frequency} -{" "}
-                {new Date(income.date).toLocaleDateString()}
+              <h3 className="font-semibold">{income.source}</h3>
+              <p className="text-gray-600">
+                ${income.amount.toFixed(2)} - {income.frequency} - {income.date}
               </p>
             </div>
+            <button
+              onClick={() => deleteIncome(income.id)}
+              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>
